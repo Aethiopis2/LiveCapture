@@ -21,7 +21,7 @@ include_directories(
     include/commons
 )
 
-add_executable(livecast main.cpp
+add_executable(livecapture main.cpp
     src/capture.cpp
     src/encoder.cpp
     src/streamer.cpp
@@ -30,7 +30,7 @@ add_executable(livecast main.cpp
     src/commons/logger.cpp
 )
 
-target_link_libraries(livecast
+target_link_libraries(livecapture
     ${AVFORMAT_LIBRARIES}
     ${AVCODEC_LIBRARIES}
     ${AVUTIL_LIBRARIES}

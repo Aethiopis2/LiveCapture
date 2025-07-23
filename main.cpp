@@ -11,8 +11,12 @@
 //===================================================================|
 #include <iostream>
 #include "capture.h"
+#include "encoder.h"
+#include "streamer.h"
+#include <thread>
 
 using namespace std;
+
 
 
 //===================================================================|
@@ -25,33 +29,35 @@ using namespace std;
  */
 int main()
 {
-    cout << "[LiveCapture] starting Live stream engine...\n";
+    CaptureSession camera;
+    camera.Init();
+    camera.Start();
 
-    try
-    {   
-        // Initialize the CaptureSession with default parameters
-        CaptureSession capture;
-        capture.Init(); 
-        capture.Start(); 
+    Encoder encoder;
+    encoder.Init();
 
-        while (true)
-        {
-            auto frame = capture.GrabFrame(); // Grab a frame from the webcam
-            if (!frame.empty())
-            {
-                 std::cout << "[Frame] Captured: " << frame.cols << "x" << frame.rows << "\n";
+    RTPStreamer streamer("127.0.0.1", 5004);
 
-                 // do stuff here
-            } // end if
-
-            
-        } // end while
-    } // end try
-    catch (const std::runtime_error& e)
+    while (true) 
     {
-        cerr << "Error: " << e.what() << endl; 
-        return EXIT_FAILURE; 
-    } // end catch 
+        cv::Mat frame = camera.GrabFrame();
+        if (frame.empty()) 
+        {
+            std::cerr << "Failed to grab frame" << std::endl;
+            continue;
+        } // end if
 
-    return EXIT_SUCCESS; // Exit with success status
+        std::vector<uint8_t> encodedData = encoder.EncodeFrame(frame);
+        if (encodedData.empty()) 
+        {
+            std::cerr << "Failed to encode frame" << std::endl;
+            continue;
+        } // end if
+
+        uint32_t timestamp = static_cast<uint32_t>(std::chrono::system_clock::now().time_since_epoch().count());
+        streamer.Send_Frame(encodedData.data(), encodedData.size(), timestamp);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(33)); // Simulate ~30 FPS
+        cout << "sent stuff\n";
+    } // end while
 } // end main
